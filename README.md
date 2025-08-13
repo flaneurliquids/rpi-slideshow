@@ -27,7 +27,7 @@ A complete slideshow system for Raspberry Pi that automatically syncs images fro
 1. Flash Raspberry Pi OS to your SD card
 2. SSH into your Raspberry Pi and run:
    ```bash
-   curl -sSL https://raw.githubusercontent.com/yourusername/rpi-slideshow/main/install.sh | bash
+   curl -sSL https://raw.githubusercontent.com/flaneurliquids/rpi-slideshow/main/install.sh | bash
    ```
 3. Follow the Google Drive authentication prompts
 4. Reboot and enjoy your slideshow!
@@ -36,7 +36,7 @@ A complete slideshow system for Raspberry Pi that automatically syncs images fro
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/rpi-slideshow.git
+   git clone https://github.com/flaneurliquids/rpi-slideshow.git
    cd rpi-slideshow
    chmod +x install.sh
    ./install.sh
