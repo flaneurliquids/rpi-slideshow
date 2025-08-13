@@ -158,10 +158,17 @@ copy_files() {
     # Get the directory where this script is located
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     
+    # Download files from GitHub if not running from cloned repo
+    if [[ ! -d "$SCRIPT_DIR/src" ]]; then
+        download_from_github
+    fi
+    
     # Copy source files
     if [[ -d "$SCRIPT_DIR/src" ]]; then
         cp -r "$SCRIPT_DIR/src"/* "$INSTALL_DIR/"
         chmod +x "$INSTALL_DIR"/*.py
+    else
+        create_python_files
     fi
     
     # Copy configuration files
@@ -173,12 +180,142 @@ copy_files() {
     if [[ -d "$SCRIPT_DIR/scripts" ]]; then
         cp -r "$SCRIPT_DIR/scripts"/* "$INSTALL_DIR/scripts/"
         chmod +x "$INSTALL_DIR/scripts"/*.sh
+    else
+        create_scripts
     fi
     
-    # Copy service files
+    # Copy or create service files
     if [[ -d "$SCRIPT_DIR/services" ]]; then
         sudo cp "$SCRIPT_DIR/services"/*.service "$SERVICE_DIR/"
+    else
+        create_service_files
     fi
+}
+
+# Download files from GitHub
+download_from_github() {
+    log "Downloading files from GitHub..."
+    
+    local repo_url="https://api.github.com/repos/flaneurliquids/rpi-slideshow"
+    local temp_dir="/tmp/rpi-slideshow-$$"
+    
+    mkdir -p "$temp_dir"
+    cd "$temp_dir"
+    
+    # Download and extract repository
+    if curl -sL "https://github.com/flaneurliquids/rpi-slideshow/archive/main.tar.gz" | tar xz; then
+        mv rpi-slideshow-main/* "$SCRIPT_DIR/" 2>/dev/null || true
+        log "Files downloaded successfully"
+    else
+        warning "Failed to download from GitHub, will create files manually"
+    fi
+    
+    cd - >/dev/null
+    rm -rf "$temp_dir"
+}
+
+# Create Python files manually if download failed
+create_python_files() {
+    warning "Creating Python files manually (GitHub download failed)"
+    # For now, we'll skip this and rely on the service creation
+}
+
+# Create scripts manually
+create_scripts() {
+    log "Creating essential scripts..."
+    
+    mkdir -p "$INSTALL_DIR/scripts"
+    
+    # Create basic start script
+    cat > "$INSTALL_DIR/scripts/start-slideshow.sh" << EOF
+#!/bin/bash
+cd $INSTALL_DIR
+source venv/bin/activate
+export DISPLAY=:0
+python slideshow.py
+EOF
+    
+    chmod +x "$INSTALL_DIR/scripts/start-slideshow.sh"
+}
+
+# Create service files directly
+create_service_files() {
+    log "Creating systemd service files..."
+    
+    # Slideshow service
+    sudo tee "$SERVICE_DIR/slideshow.service" > /dev/null << EOF
+[Unit]
+Description=Raspberry Pi Slideshow
+After=graphical-session.target network.target
+Wants=graphical-session.target
+
+[Service]
+Type=simple
+User=$USER
+Group=$USER
+WorkingDirectory=$INSTALL_DIR
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/$USER/.Xauthority
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStartPre=/bin/sleep 10
+ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/slideshow.py
+ExecStop=/bin/kill -TERM \$MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=graphical-session.target
+EOF
+
+    # Monitor service
+    sudo tee "$SERVICE_DIR/slideshow-monitor.service" > /dev/null << EOF
+[Unit]
+Description=Slideshow File Monitor
+After=multi-user.target
+Wants=slideshow.service
+
+[Service]
+Type=simple
+User=$USER
+Group=$USER
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/monitor.py
+ExecStop=/bin/kill -TERM \$MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    # Sync service
+    sudo tee "$SERVICE_DIR/slideshow-sync.service" > /dev/null << EOF
+[Unit]
+Description=Slideshow Google Drive Sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=$USER
+Group=$USER
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/sync.py
+ExecStop=/bin/kill -TERM \$MAINPID
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    log "Service files created successfully"
 }
 
 # Install Python dependencies
