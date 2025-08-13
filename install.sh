@@ -263,17 +263,88 @@ setup_google_drive() {
     echo "Google Drive Configuration"
     echo "=========================================="
     echo
-    echo "You need to configure rclone to access your Google Drive."
-    echo "This requires a web browser for authentication."
+    echo "Choose your Google Drive sync method:"
     echo
-    read -p "Do you want to configure Google Drive sync now? (Y/n): " -n 1 -r
+    echo "1. Simple Method (Recommended)"
+    echo "   - Uses a public folder link (no authentication required)"
+    echo "   - Just share your folder with 'Anyone with the link'"
+    echo "   - Much easier to set up"
+    echo
+    echo "2. rclone Method (Advanced)"
+    echo "   - Requires OAuth authentication"
+    echo "   - Supports private folders and bidirectional sync"
+    echo "   - More complex setup"
+    echo
+    read -p "Choose method (1 for Simple, 2 for rclone, or N to skip): " -n 1 -r
     echo
     
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        warning "Skipping Google Drive setup. You can run it later with:"
-        warning "  $INSTALL_DIR/scripts/setup-rclone.sh"
+    case $REPLY in
+        1)
+            setup_simple_sync
+            ;;
+        2)
+            setup_rclone_sync
+            ;;
+        [Nn])
+            warning "Skipping Google Drive setup. You can configure it later by editing:"
+            warning "  $INSTALL_DIR/config/slideshow.conf"
+            ;;
+        *)
+            warning "Invalid choice. Skipping Google Drive setup."
+            ;;
+    esac
+}
+
+# Setup simple sync method
+setup_simple_sync() {
+    log "Setting up simple Google Drive sync..."
+    
+    echo
+    echo "To use the simple sync method:"
+    echo "1. Create a folder in your Google Drive"
+    echo "2. Upload your images to this folder"
+    echo "3. Right-click the folder → Share → 'Anyone with the link'"
+    echo "4. Copy the folder URL"
+    echo
+    read -p "Do you have a public Google Drive folder URL ready? (y/N): " -n 1 -r
+    echo
+    
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo
+        read -p "Enter your Google Drive folder URL: " folder_url
+        
+        if [[ -n "$folder_url" ]]; then
+            # Update config file with the URL
+            sed -i "s|^public_folder_url = .*|public_folder_url = $folder_url|" "$INSTALL_DIR/config/slideshow.conf"
+            sed -i "s|^sync_method = .*|sync_method = simple|" "$INSTALL_DIR/config/slideshow.conf"
+            
+            log "✓ Simple sync configured with your folder URL"
+            info "Your images will be synced from: $folder_url"
+        else
+            warning "No URL provided. You can add it later in the config file."
+        fi
+    else
+        info "You can configure the folder URL later by editing:"
+        info "  $INSTALL_DIR/config/slideshow.conf"
+        info "Just add your public folder URL to the 'public_folder_url' setting"
+    fi
+}
+
+# Setup rclone sync method
+setup_rclone_sync() {
+    log "Setting up rclone Google Drive sync..."
+    
+    echo
+    echo "This method requires OAuth authentication and a web browser."
+    read -p "Continue with rclone setup? (y/N): " -n 1 -r
+    echo
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         return
     fi
+    
+    # Update config to use rclone method
+    sed -i "s|^sync_method = .*|sync_method = rclone|" "$INSTALL_DIR/config/slideshow.conf"
     
     # Run rclone config
     info "Starting rclone configuration..."
@@ -297,9 +368,9 @@ setup_google_drive() {
     # Test the configuration
     info "Testing Google Drive connection..."
     if rclone lsd gdrive: >/dev/null 2>&1; then
-        log "Google Drive connection successful!"
+        log "✓ rclone Google Drive connection successful!"
     else
-        error "Google Drive connection failed. Please run setup again."
+        error "rclone Google Drive connection failed. Please run setup again."
         exit 1
     fi
 }

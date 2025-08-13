@@ -29,8 +29,12 @@ A complete slideshow system for Raspberry Pi that automatically syncs images fro
    ```bash
    curl -sSL https://raw.githubusercontent.com/flaneurliquids/rpi-slideshow/main/install.sh | bash
    ```
-3. Follow the Google Drive authentication prompts
+3. Choose **Simple Sync** (just paste a Google Drive folder URL - no authentication!)
 4. Reboot and enjoy your slideshow!
+
+### 🚀 **Two Sync Methods Available:**
+- **Simple Sync** ⭐ *Recommended* - Just make your Google Drive folder public and paste the URL
+- **rclone Sync** - Full OAuth authentication for private folders and advanced features
 
 ## Manual Installation
 
