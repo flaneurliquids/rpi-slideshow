@@ -1,0 +1,33 @@
+[Unit]
+Description=Slideshow Google Drive Sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/slideshow
+ExecStart=/home/pi/slideshow/venv/bin/python /home/pi/slideshow/sync.py
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+# Resource limits
+MemoryLimit=512M
+CPUQuota=30%
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/home/pi/slideshow /home/pi/.config/rclone
+PrivateTmp=true
+
+# Network access required
+PrivateNetwork=false
+
+[Install]
+WantedBy=multi-user.target

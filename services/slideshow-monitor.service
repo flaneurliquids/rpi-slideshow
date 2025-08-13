@@ -1,0 +1,31 @@
+[Unit]
+Description=Slideshow File Monitor
+After=multi-user.target
+Wants=slideshow.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/slideshow
+ExecStart=/home/pi/slideshow/venv/bin/python /home/pi/slideshow/monitor.py
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Resource limits
+MemoryLimit=256M
+CPUQuota=20%
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=false
+ReadWritePaths=/home/pi/slideshow
+PrivateTmp=true
+PrivateDevices=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+# Python dependencies for Raspberry Pi Slideshow System
+
+# Core image processing
+Pillow>=9.0.0
+
+# File system monitoring
+watchdog>=2.1.0
+
+# System monitoring and process management
+psutil>=5.8.0
+
+# HTTP requests (for API calls)
+requests>=2.28.0
+
+# Configuration file handling (included in Python standard library)
+# configparser
+
+# Daemon support (for background processes)
+python-daemon>=2.3.0
