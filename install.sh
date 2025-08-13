@@ -58,8 +58,37 @@ check_pi() {
 # Update system packages
 update_system() {
     log "Updating system packages..."
-    sudo apt update
-    sudo apt upgrade -y
+    
+    # Update package lists
+    if ! sudo apt update; then
+        error "Failed to update package lists"
+        exit 1
+    fi
+    
+    # Try to upgrade packages, but don't fail if kernel updates have issues
+    log "Upgrading system packages (may take several minutes)..."
+    if ! sudo apt upgrade -y; then
+        warning "System upgrade encountered errors. This is often related to kernel updates."
+        warning "Attempting to fix broken packages..."
+        
+        # Try to fix broken packages
+        sudo apt --fix-broken install -y
+        sudo dpkg --configure -a
+        
+        # Clean package cache
+        sudo apt clean
+        sudo apt autoclean
+        
+        # Try upgrade again with less strict error handling
+        if ! sudo apt upgrade -y --fix-missing; then
+            warning "Some package updates failed. Continuing with installation..."
+            warning "You may need to run 'sudo apt upgrade' manually after installation."
+        else
+            log "Package issues resolved successfully"
+        fi
+    else
+        log "System upgrade completed successfully"
+    fi
 }
 
 # Install required packages
