@@ -13,9 +13,9 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-INSTALL_DIR="/home/pi/slideshow"
+USER="$(whoami)"
+INSTALL_DIR="/home/$USER/slideshow"
 SERVICE_DIR="/etc/systemd/system"
-USER="pi"
 
 # Logging function
 log() {
@@ -207,11 +207,11 @@ install_python_deps() {
 configure_x11() {
     log "Configuring X11 for automatic slideshow..."
     
-    # Enable auto-login for pi user
+    # Enable auto-login for current user
     sudo systemctl set-default graphical.target
     
     # Configure automatic X11 startup
-    cat > /home/pi/.xinitrc << 'EOF'
+    cat > "/home/$USER/.xinitrc" << EOF
 #!/bin/bash
 # Start window manager
 matchbox-window-manager -use_cursor no -use_titlebar no &
@@ -225,18 +225,18 @@ xset s noblank
 unclutter -idle 1 &
 
 # Start slideshow
-/home/pi/slideshow/scripts/start-slideshow.sh
+$INSTALL_DIR/scripts/start-slideshow.sh
 EOF
 
-    chmod +x /home/pi/.xinitrc
+    chmod +x "/home/$USER/.xinitrc"
     
     # Configure auto-startx in .profile
-    if ! grep -q "startx" /home/pi/.profile; then
-        echo "" >> /home/pi/.profile
-        echo "# Auto-start X11 for slideshow" >> /home/pi/.profile
-        echo "if [ -z \"\$DISPLAY\" ] && [ \"\$(tty)\" = \"/dev/tty1\" ]; then" >> /home/pi/.profile
-        echo "    startx" >> /home/pi/.profile
-        echo "fi" >> /home/pi/.profile
+    if ! grep -q "startx" "/home/$USER/.profile"; then
+        echo "" >> "/home/$USER/.profile"
+        echo "# Auto-start X11 for slideshow" >> "/home/$USER/.profile"
+        echo 'if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then' >> "/home/$USER/.profile"
+        echo "    startx" >> "/home/$USER/.profile"
+        echo "fi" >> "/home/$USER/.profile"
     fi
 }
 
@@ -310,10 +310,10 @@ create_config() {
     
     # Create main config if it doesn't exist
     if [[ ! -f "$INSTALL_DIR/config/slideshow.conf" ]]; then
-        cat > "$INSTALL_DIR/config/slideshow.conf" << 'EOF'
+        cat > "$INSTALL_DIR/config/slideshow.conf" << EOF
 [slideshow]
 # Local directory containing images
-images_dir = /home/pi/slideshow/images
+images_dir = $INSTALL_DIR/images
 # Display duration per image (seconds)
 display_duration = 10
 # Supported image formats
@@ -345,7 +345,7 @@ restart_delay = 5
 
 [logging]
 # Log directory
-log_dir = /home/pi/slideshow/logs
+log_dir = $INSTALL_DIR/logs
 # Log level (DEBUG, INFO, WARNING, ERROR)
 log_level = INFO
 # Enable log rotation
